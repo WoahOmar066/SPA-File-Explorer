@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media Viewer</title>
+    <link rel="icon" type="x" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            color: #ffffff;
+        }
+
+        body {
+            background-color: #000;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* header section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: transparent;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            max-width: 60%;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .main-content.with-queue .header {
+            width: calc(100% - 400px);
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            margin-left: 17px;
+        }
+
+        .file-name {
+            font-size: 1.2rem;
+            margin-left: 7px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+        }
+        
+        /* Queue sidebar */
+        .queue-sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background-color: #171717;
+            z-index: 15;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .queue-sidebar.open {
+            right: 0;
+        }
+        
+        .queue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #2f2f2f;
+        }
+        
+        .queue-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        
+        .queue-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        .queue-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+        
+        .queue-item {
+            display: flex;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            background-color: #2f2f2f;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .queue-item:hover {
+            background-color: #3a3a3a;
+        }
+        
+        .queue-item.active {
+            background-color: #3a3a3a;
+            border-left: 3px solid #ffffff;
+        }
+        
+        .queue-item-icon {
+            width: 80px;
+            height: 60px;
+            margin-right: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            border-radius: 4px;
+        }
+        
+        .queue-item-icon img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .queue-item-icon i {
+            font-size: 1.5rem;
+            color: #aaaaaa;
+        }
+        
+        .queue-item-details {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .queue-item-title {
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 0.25rem;
+        }
+        
+        .queue-item-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #aaaaaa;
+        }
+        
+        .queue-controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            border-top: 1px solid #2f2f2f;
+        }
+        
+        .queue-btn {
+            background-color: #2f2f2f;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        
+        .queue-btn:hover {
+            background-color: #3a3a3a;
+        }
+        
+        .main-content.with-queue .viewer {
+            width: calc(100% - 400px);
+            transition: width 0.3s ease;
+        }
+        
+        /* Play/Pause */
+        .play-pause-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(23, 23, 23, 0.7);
+            border: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+            font-size: 2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .main-content:hover .play-pause-btn {
+            opacity: 1;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #121212;
+        }
+
+        .control-btn:hover {
+            background-color: #3a3a3a;
+            transform: scale(1.1);
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .viewer {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .nav-arrows {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 5;
+        }
+
+        .main-content:hover .nav-arrows {
+            opacity: 1;
+        }
+
+        .nav-left {
+            left: 0;
+        }
+
+        .nav-right {
+            right: 0;
+        }
+
+        .nav-icon {
+            font-size: 2rem;
+            color: white;
+        }
+
+        /* different file types */
+        .image-viewer {
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-viewer img {
+            max-width: calc(100% - 40px);
+            max-height: calc(100% - 40px);
+            object-fit: contain;
+        }
+
+        .video-viewer {
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-viewer video {
+            max-width: calc(100% - 40px);
+            max-height: calc(100% - 80px);
+            object-fit: contain;
+            min-height: 70vh;
+        }
+        
+        /* Video container with cursor hide functionality */
+        .video-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            cursor: default;
+        }
+        
+        .video-container.cursor-hidden {
+            cursor: none;
+        }
+        
+        .audio-viewer {
+            padding: 20px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .audio-viewer audio {
+            max-width: calc(100% - 40px);
+            width: 80%;
+        }
+
+        .media-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #171717;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 0;
+        }
+
+        .progress-container {
+            flex: 1;
+            height: 10px;
+            background-color: #2f2f2f;
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+            bottom: 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #ffffff;
+            border-radius: 3px;
+            width: 0;
+            position: relative;
+        }
+        
+        .progress-handle {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            cursor: grab;
+            z-index: 2;
+        }
+        
+        .progress-container:hover .progress-handle {
+            opacity: 1;
+        }
+
+        .timestamp {
+            font-size: 0.8rem;
+            min-width: 120px;
+            text-align: right;
+        }
+
+        .document-viewer {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 2rem;
+            background-color: #2f2f2f;
+        }
+
+        .document-page {
+            background-color: white;
+            margin: 0 auto 2rem auto;
+            padding: 2rem;
+            max-width: 800px;
+            min-height: 1100px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* getting started screen */
+        .start-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            text-align: center;
+            width: 800px;
+            margin: 60px auto 2rem;
+            margin-top: 40px;
+            max-width: 800px;
+            padding: 60px 2rem 2rem 2rem;
+            overflow-y: auto;
+            height: 100%;
+            position: relative;
+        }
+
+        .recent-folders {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 2rem;
+        }
+
+        .recent-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-align: left;
+            color: #aaaaaa;
+        }
+
+        .folder-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left;
+            background-color: #121212;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .folder-item:hover {
+            background-color: #3a3a3a;
+        }
+
+        .folder-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .folder-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .folder-star, .folder-delete {
+            background: none;
+            border: none;
+            color: #ffffff;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .folder-item:hover .folder-star,
+        .folder-item:hover .folder-delete {
+            opacity: 1;
+        }
+        
+        .folder-star.active {
+            opacity: 1;
+            color: #ffd700;
+        }
+        
+        .folder-star i {
+            font-weight: normal;
+        }
+        
+        .folder-star.active i {
+            font-weight: 900;
+        }
+        
+        .folder-star:not(.active) i:before {
+            content: "\f005";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 400;
+        }
+        
+        .starred-folders {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: -30px;
+        }
+
+        .start-btn {
+            background-color: #121212;
+            border: none;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            top: 10px;
+            right: 100px; 
+            width: auto;
+            padding: 0.5rem 1rem;
+            z-index: 10;
+        }
+
+        .start-btn:hover {
+            background-color: #3a3a3a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* modal for add file */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background-color: #2f2f2f;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 500px;
+            max-width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .drop-area {
+            border: 2px dashed #505050;
+            border-radius: 10px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .drop-area.dragover {
+            background-color: #3a3a3a;
+            border-color: #ffffff;
+        }
+
+        .file-select-btn {
+            background-color: #171717;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        .file-select-btn:hover {
+            background-color: #0f0f0f;
+        }
+
+        .add-file-btn {
+            background-color: #171717;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .add-file-btn:hover {
+            background-color: #0f0f0f;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #171717;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+        
+        /* For Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #3a3a3a #171717;
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: absolute;
+            background-color: #121212;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            margin-top: 5px;
+        }
+        
+        .tooltip:after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 0 5px 5px;
+            border-style: solid;
+            border-color: transparent transparent #121212 transparent;
+        }
+        
+        /* Load more button */
+        .load-more-btn {
+            background-color: #2f2f2f;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .load-more-btn:hover {
+            background-color: #3a3a3a;
+        }
+
+        /* Queue drop indicator */
+        .queue-drop-indicator {
+            height: 3px;
+            background-color: #ffffff;
+            position: absolute;
+            left: 0;
+            right: 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .queue-drop-indicator.show {
+            opacity: 1;
+        }
+
+        /* Fallback message */
+        .fallback-message {
+            max-width: 600px;
+            text-align: center;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .fallback-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .fallback-text {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Loader */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Keyboard shortcuts tooltip */
+        .keyboard-shortcuts {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #171717;
+            border-radius: 5px;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            z-index: 15;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .keyboard-shortcuts:hover {
+            opacity: 1;
+        }
+
+        .shortcut-list {
+            list-style: none;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .shortcut-key {
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header hidden">
+        <div class="file-info">
+            <button class="control-btn home-btn" title="Home">
+                <i class="fas fa-home"></i>
+            </button>
+            <div class="file-icon"><i class="fas fa-file"></i></div>
+            <div class="file-name">No file selected</div>
+        </div>
+        <div class="controls">
+            <button class="control-btn download-btn" title="Download">
+                <i class="fas fa-download"></i>
+            </button>
+            <button class="control-btn shuffle-btn" title="Shuffle">
+                <i class="fas fa-random"></i>
+            </button>
+            <button class="control-btn new-folder-btn" title="Choose Different Folder">
+                <i class="fas fa-folder-plus"></i>
+            </button>
+            <button class="control-btn add-btn" title="Add file">
+                <i class="fas fa-plus"></i>
+            </button>
+            <button class="control-btn queue-btn" title="Show Queue">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="queue-sidebar">
+        <div class="queue-header">
+            <h3 class="queue-title">File Queue</h3>
+            <button class="queue-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="queue-list">
+            <!-- Queue items will be populated here -->
+        </div>
+        <div class="queue-controls">
+            <button class="queue-btn shuffle-queue-btn">
+                <i class="fas fa-random"></i> Shuffle
+            </button>
+            <button class="queue-btn sort-queue-btn">
+                <i class="fas fa-sort-alpha-down"></i> Sort
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="start-screen">
+            <button class="start-btn" id="sbun" title="Select Folder">
+                <i class="fas fa-folder-open"></i>
+            </button>
+            
+            <div class="starred-folders hidden">
+                <h3 class="recent-title">Starred Folders</h3>
+                <div class="starred-list">
+                    <!-- Starred folders will be populated here -->
+                </div>
+            </div>
+            
+            <div class="recent-folders hidden">
+                <h3 class="recent-title">Recently Opened Folders</h3>
+                <div class="recent-list">
+                    <!-- Recent folders will be populated here -->
+                </div>
+                <button class="load-more-btn hidden">Load More</button>
+            </div>
+            
+            <div class="fallback-message hidden">
+                <h2 class="fallback-title">Unsupported Browser</h2>
+                <p class="fallback-text">Your browser doesn't support the File System Access API. Please try using Google Chrome or Microsoft Edge.</p>
+                <button class="start-btn fallback-btn">Select Files Instead</button>
+            </div>
+        </div>
+
+        <div class="viewer hidden">
+            <div class="image-viewer hidden"></div>
+            <div class="video-viewer hidden"></div>
+            <div class="audio-viewer hidden"></div>
+            <div class="document-viewer hidden"></div>
+            
+            <div class="nav-arrows nav-left">
+                <i class="fas fa-chevron-left nav-icon"></i>
+            </div>
+            <div class="nav-arrows nav-right">
+                <i class="fas fa-chevron-right nav-icon"></i>
+            </div>
+            
+            <button class="play-pause-btn hidden">
+                <i class="fas fa-play"></i>
+            </button>
+            
+            <div class="media-controls hidden">
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                    <div class="progress-handle"></div>
+                </div>
+                <div class="timestamp">0:00 / 0:00</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add File</h2>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="drop-area">
+                <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                <p>Drag & Drop files here</p>
+                <p>OR</p>
+                <button class="file-select-btn">Browse Files</button>
+                <input type="file" id="file-input" class="hidden">
+            </div>
+            <button class="add-file-btn">Add File</button>
+        </div>
+    </div>
+    
+
+
+    <script>
+        // Clean app state management
+        const App = {
+            state: {
+                currentDirHandle: null,
+                files: [],
+                currentFileIndex: 0,
+                mediaElement: null,
+                isQueueOpen: false,
+                isPlaying: false,
+                recentFolders: [],
+                starredFolders: [],
+                dragIndicator: null,
+                selectedFileToAdd: null,
+                objectUrls: [], // Track object URLs for cleanup
+                fullscreen: false,
+                dbInitialized: false,
+                db: null
+            },
+            
+            // Initialize the app
+            init() {
+                // Initialize state
+                this.state = {
+                    ...this.state,
+                    displayLimit: 8, // For recent folders display
+                };
+                
+                // Check for File System Access API support
+                const hasFileSystemSupport = 'showDirectoryPicker' in window;
+                
+                if (!hasFileSystemSupport) {
+                    // Show fallback UI
+                    document.querySelector('.fallback-message').classList.remove('hidden');
+                    document.querySelector('.start-btn').classList.add('hidden');
+                }
+                
+                // Set up event listeners
+                this.setupEventListeners();
+                
+                // Load recent folders
+                this.loadRecentFolders();
+                
+                // Initialize the app
+            },
+            
+            // Set up all event listeners in one place
+            setupEventListeners() {
+                // DOM elements
+                const startScreen = document.querySelector('.start-screen');
+                const startBtn = document.querySelector('.start-btn');
+                const fallbackBtn = document.querySelector('.fallback-btn');
+                const recentFoldersList = document.querySelector('.recent-list');
+                const navLeft = document.querySelector('.nav-left');
+                const navRight = document.querySelector('.nav-right');
+                const downloadBtn = document.querySelector('.download-btn');
+                const shuffleBtn = document.querySelector('.shuffle-btn');
+                const newFolderBtn = document.querySelector('.new-folder-btn');
+                const addBtn = document.querySelector('.add-btn');
+                const queueBtn = document.querySelector('.queue-btn');
+                const queueClose = document.querySelector('.queue-close');
+                const shuffleQueueBtn = document.querySelector('.shuffle-queue-btn');
+                const sortQueueBtn = document.querySelector('.sort-queue-btn');
+                const playPauseBtn = document.querySelector('.play-pause-btn');
+                const progressContainer = document.querySelector('.progress-container');
+                const progressHandle = document.querySelector('.progress-handle');
+                const modal = document.querySelector('.modal');
+                const modalClose = document.querySelector('.modal-close');
+                const dropArea = document.querySelector('.drop-area');
+                const fileInput = document.querySelector('#file-input');
+                const fileSelectBtn = document.querySelector('.file-select-btn');
+                const addFileBtn = document.querySelector('.add-file-btn');
+                const homeBtn = document.querySelector('.home-btn');
+                
+                // Home button
+                if (homeBtn) {
+                    homeBtn.addEventListener('click', () => {
+                        window.location.reload();
+                    });
+                }
+                
+                // Start screen listeners
+                startBtn.addEventListener('click', () => this.selectNewFolder());
+                
+                // Fallback button for browsers without File System Access API
+                if (fallbackBtn) {
+                    fallbackBtn.addEventListener('click', () => this.selectFilesInstead());
+                }
+                
+                // Navigation listeners
+                navLeft.addEventListener('click', () => this.prevFile());
+                navRight.addEventListener('click', () => this.nextFile());
+                
+                // Button controls
+                downloadBtn.addEventListener('click', () => this.downloadCurrentFile());
+                shuffleBtn.addEventListener('click', () => {
+                    this.shuffleFiles();
+                    if (this.state.isQueueOpen) {
+                        this.updateQueueList();
+                    }
+                    this.displayFile(this.state.files[this.state.currentFileIndex]);
+                });
+                newFolderBtn.addEventListener('click', () => this.selectNewFolder());
+                queueBtn.addEventListener('click', () => this.toggleQueueSidebar());
+                queueClose.addEventListener('click', () => this.closeQueueSidebar());
+                
+                // Queue controls
+                shuffleQueueBtn.addEventListener('click', () => {
+                    this.shuffleFiles();
+                    this.updateQueueList();
+                    this.displayFile(this.state.files[this.state.currentFileIndex]);
+                });
+                
+                sortQueueBtn.addEventListener('click', () => {
+                    // Sort files by name
+                    this.state.files.sort((a, b) => a.name.localeCompare(b.name));
+                    // Find the new index of the current file
+                    const currentFile = this.state.files[this.state.currentFileIndex];
+                    this.state.currentFileIndex = this.state.files.findIndex(file => file.name === currentFile.name);
+                    this.updateQueueList();
+                });
+                
+                // Media controls
+                playPauseBtn.addEventListener('click', () => this.togglePlayPause());
+                
+                // Progress bar click and drag handling
+                progressContainer.addEventListener('click', (e) => {
+                    if (!this.state.mediaElement) return;
+                    
+                    const rect = progressContainer.getBoundingClientRect();
+                    const pos = (e.clientX - rect.left) / rect.width;
+                    this.state.mediaElement.currentTime = pos * this.state.mediaElement.duration;
+                });
+                
+                // Draggable progress handle
+                let isDragging = false;
+                
+                progressHandle.addEventListener('mousedown', (e) => {
+                    if (!this.state.mediaElement) return;
+                    e.preventDefault();
+                    isDragging = true;
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging || !this.state.mediaElement) return;
+                    
+                    const rect = progressContainer.getBoundingClientRect();
+                    let pos = (e.clientX - rect.left) / rect.width;
+                    
+                    // Constrain position to progress bar bounds
+                    pos = Math.max(0, Math.min(1, pos));
+                    
+                    this.state.mediaElement.currentTime = pos * this.state.mediaElement.duration;
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+                
+                // Modal controls
+                addBtn.addEventListener('click', () => {
+                    modal.classList.add('show');
+                });
+                
+                modalClose.addEventListener('click', () => {
+                    modal.classList.remove('show');
+                });
+                
+                // Close modal if clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('show');
+                    }
+                });
+                
+                // File drag and drop
+                dropArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropArea.classList.add('dragover');
+                });
+                
+                dropArea.addEventListener('dragleave', () => {
+                    dropArea.classList.remove('dragover');
+                });
+                
+                dropArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropArea.classList.remove('dragover');
+                    
+                    if (e.dataTransfer.files.length > 0) {
+                        this.handleFileAdd(e.dataTransfer.files[0]);
+                    }
+                });
+                
+                // File input
+                fileSelectBtn.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.files.length > 0) {
+                        this.handleFileAdd(fileInput.files[0]);
+                    }
+                });
+                
+                addFileBtn.addEventListener('click', () => this.addSelectedFile());
+                
+                // Keyboard navigation - UPDATED for 10-second jumps with arrows and Ctrl+arrow for navigation
+                document.addEventListener('keydown', (e) => {
+                    // Don't capture keystrokes when in input fields
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                        return;
+                    }
+                    
+                    // If Ctrl is pressed, use arrows for file navigation
+                    if (e.ctrlKey) {
+                        if (e.key === 'ArrowLeft') {
+                            this.prevFile();
+                            e.preventDefault();
+                        } else if (e.key === 'ArrowRight') {
+                            this.nextFile();
+                            e.preventDefault();
+                        }
+                    } 
+                    // Without Ctrl, use arrows for time navigation (10-second jumps) in media
+                    else if (this.state.mediaElement && 
+                             (this.state.mediaElement.tagName === 'VIDEO' || 
+                              this.state.mediaElement.tagName === 'AUDIO')) {
+                        if (e.key === 'ArrowLeft') {
+                            this.state.mediaElement.currentTime = Math.max(0, this.state.mediaElement.currentTime - 10);
+                            e.preventDefault();
+                        } else if (e.key === 'ArrowRight') {
+                            this.state.mediaElement.currentTime = Math.min(
+                                this.state.mediaElement.duration, 
+                                this.state.mediaElement.currentTime + 10
+                            );
+                            e.preventDefault();
+                        }
+                    } 
+                    // For non-media or when no media is loaded
+                    else {
+                        if (e.key === 'ArrowLeft') {
+                            this.prevFile();
+                            e.preventDefault();
+                        } else if (e.key === 'ArrowRight') {
+                            this.nextFile();
+                            e.preventDefault();
+                        }
+                    }
+                    
+                    if (e.key === ' ' && (this.state.mediaElement && 
+                              (this.state.mediaElement.tagName === 'VIDEO' || this.state.mediaElement.tagName === 'AUDIO'))) {
+                        // Space bar for play/pause
+                        this.togglePlayPause();
+                        e.preventDefault(); // Prevent page scroll
+                    } else if (e.key === 'Escape') {
+                        // Close modal if open
+                        if (modal.classList.contains('show')) {
+                            modal.classList.remove('show');
+                        }
+                        // Exit fullscreen if active
+                        if (this.state.fullscreen) {
+                            this.toggleFullscreen();
+                        }
+                    } else if (e.key.toLowerCase() === 'q') {
+                        // Toggle queue
+                        this.toggleQueueSidebar();
+                    } else if (e.key.toLowerCase() === 'f') {
+                        // Toggle fullscreen
+                        this.toggleFullscreen();
+                    }
+                });
+                
+                // Window resize event
+                window.addEventListener('resize', () => {
+                    // Adjust UI if needed when window size changes
+                    if (this.state.mediaElement && this.state.mediaElement.tagName === 'VIDEO') {
+                        // Resize video for optimal viewing
+                        this.optimizeVideoSize(this.state.mediaElement);
+                    }
+                });
+                
+                // Handle page unload - clean up object URLs
+                window.addEventListener('beforeunload', () => {
+                    this.cleanupObjectUrls();
+                });
+            },
+            
+            // Clean up object URLs to prevent memory leaks
+            cleanupObjectUrls() {
+                this.state.objectUrls.forEach(url => {
+                    URL.revokeObjectURL(url);
+                });
+                this.state.objectUrls = [];
+            },
+            
+            // Helper function to create and track object URLs
+            createObjectURL(blob) {
+                const url = URL.createObjectURL(blob);
+                this.state.objectUrls.push(url);
+                return url;
+            },
+            
+            // Reset all viewers
+            resetViewers() {
+                const imageViewer = document.querySelector('.image-viewer');
+                const videoViewer = document.querySelector('.video-viewer');
+                const audioViewer = document.querySelector('.audio-viewer');
+                const documentViewer = document.querySelector('.document-viewer');
+                const mediaControls = document.querySelector('.media-controls');
+                const playPauseBtn = document.querySelector('.play-pause-btn');
+                
+                // Clean up previous media element if it exists
+                if (this.state.mediaElement) {
+                    // Remove all event listeners by cloning and replacing
+                    const oldElement = this.state.mediaElement;
+                    if (oldElement.parentNode) {
+                        const newElement = oldElement.cloneNode(false);
+                        oldElement.parentNode.replaceChild(newElement, oldElement);
+                    }
+                }
+                
+                imageViewer.classList.add('hidden');
+                imageViewer.innerHTML = '';
+                
+                videoViewer.classList.add('hidden');
+                videoViewer.innerHTML = '';
+                
+                audioViewer.classList.add('hidden');
+                audioViewer.innerHTML = '';
+                
+                documentViewer.classList.add('hidden');
+                documentViewer.innerHTML = '';
+                
+                mediaControls.classList.add('hidden');
+                playPauseBtn.classList.add('hidden');
+                
+                this.state.mediaElement = null;
+            },
+            
+            // Update UI with current file
+            async displayFile(file) {
+                this.resetViewers();
+                
+                const imageViewer = document.querySelector('.image-viewer');
+                const videoViewer = document.querySelector('.video-viewer');
+                const audioViewer = document.querySelector('.audio-viewer');
+                const documentViewer = document.querySelector('.document-viewer');
+                const mediaControls = document.querySelector('.media-controls');
+                const playPauseBtn = document.querySelector('.play-pause-btn');
+                const fileIcon = document.querySelector('.file-icon i');
+                const fileName = document.querySelector('.file-name');
+                const timestamp = document.querySelector('.timestamp');
+                const progressBar = document.querySelector('.progress-bar');
+                
+                // Update file info
+                fileName.textContent = file.name;
+                fileIcon.className = `fas ${this.getFileIcon(file.type)}`;
+                
+                // Update queue item highlight
+                this.updateQueueHighlight();
+                
+                // Get file content
+                try {
+                    const fileContent = await file.arrayBuffer();
+                    const blob = new Blob([fileContent], { type: file.type });
+                    
+                    // Clean up previous object URLs
+                    this.cleanupObjectUrls();
+                    
+                    const url = this.createObjectURL(blob);
+                    
+                    this.state.isPlaying = true;
+                    
+                    // Display based on file type
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.onload = () => {
+                            // Ensure image is loaded before displaying
+                            imageViewer.appendChild(img);
+                            imageViewer.classList.remove('hidden');
+                        };
+                        
+                        img.onerror = () => {
+                            this.showErrorMessage(file.name, 'Failed to load image');
+                        };
+                        
+                        playPauseBtn.classList.add('hidden');
+                    } 
+                    else if (file.type.startsWith('video/')) {
+                        // Create a container for cursor hiding
+                        const videoContainer = document.createElement('div');
+                        videoContainer.className = 'video-container';
+                        
+                        const video = document.createElement('video');
+                        
+                        // Improve video loading reliability
+                        video.addEventListener('error', (e) => {
+                            console.error('Video loading error:', e);
+                            this.showErrorMessage(file.name, 'Error loading video. Please try again.');
+                            
+                            // Create a fresh video element for retry
+                            setTimeout(() => {
+                                const newVideo = document.createElement('video');
+                                const newUrl = this.createObjectURL(blob);
+                                newVideo.src = newUrl;
+                                newVideo.controls = false;
+                                newVideo.autoplay = false;
+                                
+                                // Replace the old video
+                                videoViewer.innerHTML = '';
+                                const newContainer = document.createElement('div');
+                                newContainer.className = 'video-container';
+                                newContainer.appendChild(newVideo);
+                                videoViewer.appendChild(newContainer);
+                                this.state.mediaElement = newVideo;
+                                
+                                // Re-attach event listeners
+                                this.attachVideoListeners(newVideo);
+                                this.setupCursorHiding(newContainer, video);
+                            }, 1000);
+                        });
+                        
+                        video.src = url;
+                        video.controls = false;
+                        video.autoplay = false;
+                        
+                        // Ensure video loads properly
+                        video.preload = 'auto';
+                        
+                        videoContainer.appendChild(video);
+                        videoViewer.appendChild(videoContainer);
+                        videoViewer.classList.remove('hidden');
+                        mediaControls.classList.remove('hidden');
+                        playPauseBtn.classList.remove('hidden');
+                        this.updatePlayPauseButton(true);
+                        this.state.mediaElement = video;
+                        
+                        // Setup cursor hiding for the video container
+                        this.setupCursorHiding(videoContainer, video);
+                        
+                        // Optimize video size
+                        this.optimizeVideoSize(video);
+                        
+                        // Attach all event listeners
+                        this.attachVideoListeners(video);
+                        
+                        // Try to play the video
+                        try {
+                            await video.play();
+                        } catch (err) {
+                            console.warn('Autoplay prevented:', err);
+                            // Add play button or user gesture required message
+                            this.updatePlayPauseButton(false);
+                            this.state.isPlaying = false;
+                        }
+                    } 
+                    else if (file.type.startsWith('audio/')) {
+                        const audio = document.createElement('audio');
+                        audio.src = url;
+                        audio.controls = false;
+                        audio.autoplay = false;
+                        audioViewer.appendChild(audio);
+                        audioViewer.classList.remove('hidden');
+                        mediaControls.classList.remove('hidden');
+                        playPauseBtn.classList.remove('hidden');
+                        this.updatePlayPauseButton(true);
+                        this.state.mediaElement = audio;
+                        
+                        audio.addEventListener('loadedmetadata', () => {
+                            timestamp.textContent = `${this.formatTime(0)} / ${this.formatTime(audio.duration)}`;
+                        });
+                        
+                        audio.addEventListener('timeupdate', () => {
+                            const progress = (audio.currentTime / audio.duration) * 100;
+                            progressBar.style.width = `${progress}%`;
+                            timestamp.textContent = `${this.formatTime(audio.currentTime)} / ${this.formatTime(audio.duration)}`;
+                        });
+                        
+                        audio.addEventListener('play', () => {
+                            this.state.isPlaying = true;
+                            this.updatePlayPauseButton(true);
+                        });
+                        
+                        audio.addEventListener('pause', () => {
+                            this.state.isPlaying = false;
+                            this.updatePlayPauseButton(false);
+                        });
+                        
+                        audio.addEventListener('ended', () => {
+                            this.state.isPlaying = false;
+                            this.updatePlayPauseButton(false);
+                            
+                            // Auto-advance to next file
+                            setTimeout(() => this.nextFile(), 1500);
+                        });
+                        
+                        try {
+                            await audio.play();
+                        } catch (err) {
+                            console.warn('Autoplay prevented:', err);
+                            this.updatePlayPauseButton(false);
+                            this.state.isPlaying = false;
+                        }
+                    } 
+                    else if (file.type === 'application/pdf') {
+                        // For PDF files
+                        const embed = document.createElement('embed');
+                        embed.src = url;
+                        embed.style.width = '100%';
+                        embed.style.height = '100%';
+                        documentViewer.appendChild(embed);
+                        documentViewer.classList.remove('hidden');
+                        playPauseBtn.classList.add('hidden');
+                    } 
+                    else {
+                        // Better fallback for other file types
+                        this.handleGenericFile(file, url);
+                    }
+                } catch (err) {
+                    console.error('Error loading file:', err);
+                    this.showErrorMessage(file.name, err.message);
+                }
+            },
+            
+            // Setup cursor hiding for video element
+            setupCursorHiding(container, videoElement) {
+                // Variables to track cursor activity
+                let cursorTimer;
+                let controlsVisible = true;
+                const navbar = document.querySelector('.header');
+                const navArrows = document.querySelectorAll('.nav-arrows');
+                const playPauseBtn = document.querySelector('.play-pause-btn');
+                const mediaControls = document.querySelector('.media-controls');
+                
+                // Function to hide cursor and controls
+                const hideCursorAndControls = () => {
+                    if (controlsVisible) {
+                        container.classList.add('cursor-hidden');
+                        navbar.style.opacity = '0';
+                        navArrows.forEach(arrow => arrow.style.opacity = '0');
+                        playPauseBtn.style.opacity = '0';
+                        mediaControls.style.opacity = '0';
+                        controlsVisible = false;
+                    }
+                };
+                
+                // Function to show cursor and controls
+                const showCursorAndControls = () => {
+                    container.classList.remove('cursor-hidden');
+                    navbar.style.opacity = '1';
+                    navArrows.forEach(arrow => arrow.style.opacity = '');
+                    playPauseBtn.style.opacity = '';
+                    mediaControls.style.opacity = '1';
+                    controlsVisible = true;
+                    
+                    // Reset the timer
+                    clearTimeout(cursorTimer);
+                    cursorTimer = setTimeout(hideCursorAndControls, 3500); // 3.5 seconds
+                };
+                
+                // Add event listeners
+                container.addEventListener('mousemove', showCursorAndControls);
+                container.addEventListener('mouseenter', showCursorAndControls);
+                
+                // Initial setup
+                cursorTimer = setTimeout(hideCursorAndControls, 3500); // 3.5 seconds
+            },
+            
+            // Handle generic file types with better preview capabilities
+            handleGenericFile(file, url) {
+                const documentViewer = document.querySelector('.document-viewer');
+                
+                // Check for common document types
+                if (file.type.includes('officedocument') || 
+                    file.type.includes('msword') || 
+                    file.name.endsWith('.docx') || 
+                    file.name.endsWith('.doc')) {
+                    
+                    // Word document
+                    const div = document.createElement('div');
+                    div.className = 'document-page';
+                    div.innerHTML = `
+                        <h2>Word Document</h2>
+                        <p><i class="fas fa-file-word fa-3x"></i></p>
+                        <p>${file.name}</p>
+                        <p>Size: ${this.formatFileSize(file.size)}</p>
+                        <p>Click the download button to save this file</p>
+                    `;
+                    documentViewer.appendChild(div);
+                    documentViewer.classList.remove('hidden');
+                } 
+                else if (file.type.includes('spreadsheet') || 
+                         file.name.endsWith('.xlsx') || 
+                         file.name.endsWith('.xls')) {
+                             
+                    // Excel document
+                    const div = document.createElement('div');
+                    div.className = 'document-page';
+                    div.innerHTML = `
+                        <h2>Excel Spreadsheet</h2>
+                        <p><i class="fas fa-file-excel fa-3x"></i></p>
+                        <p>${file.name}</p>
+                        <p>Size: ${this.formatFileSize(file.size)}</p>
+                        <p>Click the download button to save this file</p>
+                    `;
+                    documentViewer.appendChild(div);
+                    documentViewer.classList.remove('hidden');
+                }
+                else if (file.type.includes('text/') || 
+                         file.name.endsWith('.txt') || 
+                         file.name.endsWith('.md') || 
+                         file.name.endsWith('.json') || 
+                         file.name.endsWith('.css') || 
+                         file.name.endsWith('.html') || 
+                         file.name.endsWith('.js')) {
+                             
+                    // Text file - show content
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(text => {
+                            const div = document.createElement('div');
+                            div.className = 'document-page';
+                            div.style.fontFamily = 'monospace';
+                            div.style.whiteSpace = 'pre-wrap';
+                            div.style.color = '#212121';
+                            div.style.overflowX = 'auto';
+                            div.style.padding = '2rem';
+                            div.textContent = text;
+                            documentViewer.appendChild(div);
+                            documentViewer.classList.remove('hidden');
+                        })
+                        .catch(err => {
+                            this.showErrorMessage(file.name, 'Error loading text content.');
+                        });
+                }
+                else {
+                    // Default viewer for other file types
+                    const div = document.createElement('div');
+                    div.className = 'document-page';
+                    div.innerHTML = `
+                        <h2>File Preview</h2>
+                        <p><i class="fas ${this.getFileIcon(file.type)} fa-3x"></i></p>
+                        <p>${file.name}</p>
+                        <p>Type: ${file.type || 'Unknown'}</p>
+                        <p>Size: ${this.formatFileSize(file.size)}</p>
+                        <p>This file type cannot be previewed in the browser.</p>
+                        <p>You can download the file using the download button above.</p>
+                    `;
+                    documentViewer.appendChild(div);
+                    documentViewer.classList.remove('hidden');
+                }
+                
+                document.querySelector('.play-pause-btn').classList.add('hidden');
+            },
+            
+            // Show error message when file loading fails
+            showErrorMessage(fileName, errorMessage) {
+                const documentViewer = document.querySelector('.document-viewer');
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'document-page';
+                errorDiv.innerHTML = `
+                    <h2>Error Loading File</h2>
+                    <p><i class="fas fa-exclamation-triangle fa-3x" style="color: #ff5252;"></i></p>
+                    <p>There was an error loading "${fileName}".</p>
+                    <p>Error: ${errorMessage}</p>
+                    <p>You can try refreshing the page or selecting the file again.</p>
+                `;
+                documentViewer.appendChild(errorDiv);
+                documentViewer.classList.remove('hidden');
+                document.querySelector('.play-pause-btn').classList.add('hidden');
+            },
+            
+            // Optimize video size based on container
+            optimizeVideoSize(video) {
+                // Wait for video metadata to load
+                video.addEventListener('loadedmetadata', () => {
+                    const viewer = document.querySelector('.video-viewer');
+                    const viewerWidth = viewer.clientWidth - 40; // Account for padding
+                    const viewerHeight = viewer.clientHeight - 80; // Account for controls
+                    
+                    const videoRatio = video.videoWidth / video.videoHeight;
+                    const containerRatio = viewerWidth / viewerHeight;
+                    
+                    if (videoRatio > containerRatio) {
+                        // Video is wider than container
+                        video.style.width = '100%';
+                        video.style.height = 'auto';
+                    } else {
+                        // Video is taller than container
+                        video.style.width = 'auto';
+                        video.style.height = '100%';
+                    }
+                });
+            },
+            
+            // Helper function to attach video event listeners
+            attachVideoListeners(video) {
+                const progressBar = document.querySelector('.progress-bar');
+                const progressHandle = document.querySelector('.progress-handle');
+                const timestamp = document.querySelector('.timestamp');
+                
+                video.addEventListener('loadedmetadata', () => {
+                    timestamp.textContent = `${this.formatTime(0)} / ${this.formatTime(video.duration)}`;
+                });
+                
+                video.addEventListener('timeupdate', () => {
+                    const progress = (video.currentTime / video.duration) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    progressHandle.style.left = `${progress}%`;
+                    timestamp.textContent = `${this.formatTime(video.currentTime)} / ${this.formatTime(video.duration)}`;
+                });
+                
+                video.addEventListener('play', () => {
+                    this.state.isPlaying = true;
+                    this.updatePlayPauseButton(true);
+                });
+                
+                video.addEventListener('pause', () => {
+                    this.state.isPlaying = false;
+                    this.updatePlayPauseButton(false);
+                });
+                
+                video.addEventListener('ended', () => {
+                    this.state.isPlaying = false;
+                    this.updatePlayPauseButton(false);
+                    
+                    // Auto-advance to next file
+                    setTimeout(() => this.nextFile(), 1500);
+                });
+            },
+            
+            // Update play/pause button
+            updatePlayPauseButton(playing) {
+                const playPauseIcon = document.querySelector('.play-pause-btn i');
+                if (playing) {
+                    playPauseIcon.className = 'fas fa-pause';
+                } else {
+                    playPauseIcon.className = 'fas fa-play';
+                }
+            },
+            
+            // Toggle play/pause
+            togglePlayPause() {
+                if (!this.state.mediaElement) return;
+                
+                if (this.state.isPlaying) {
+                    this.state.mediaElement.pause();
+                    this.state.isPlaying = false;
+                } else {
+                    this.state.mediaElement.play().catch(err => {
+                        console.warn('Error playing media:', err);
+                    });
+                    this.state.isPlaying = true;
+                }
+                
+                this.updatePlayPauseButton(this.state.isPlaying);
+            },
+            
+            // Toggle fullscreen
+            toggleFullscreen() {
+                const mainContent = document.querySelector('.main-content');
+                
+                if (!this.state.fullscreen) {
+                    if (mainContent.requestFullscreen) {
+                        mainContent.requestFullscreen();
+                    } else if (mainContent.webkitRequestFullscreen) { /* Safari */
+                        mainContent.webkitRequestFullscreen();
+                    } else if (mainContent.msRequestFullscreen) { /* IE11 */
+                        mainContent.msRequestFullscreen();
+                    }
+                    this.state.fullscreen = true;
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) { /* Safari */
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) { /* IE11 */
+                        document.msExitFullscreen();
+                    }
+                    this.state.fullscreen = false;
+                }
+            },
+            
+            // Next file function
+            nextFile() {
+                if (this.state.files.length === 0) return;
+                
+                this.state.currentFileIndex = (this.state.currentFileIndex + 1) % this.state.files.length;
+                this.displayFile(this.state.files[this.state.currentFileIndex]);
+            },
+            
+            // Previous file function
+            prevFile() {
+                if (this.state.files.length === 0) return;
+                
+                this.state.currentFileIndex = (this.state.currentFileIndex - 1 + this.state.files.length) % this.state.files.length;
+                this.displayFile(this.state.files[this.state.currentFileIndex]);
+            },
+            
+            // Shuffle files
+            shuffleFiles() {
+                if (this.state.files.length <= 1) return;
+                
+                // Shuffle the files array
+                for (let i = this.state.files.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.state.files[i], this.state.files[j]] = [this.state.files[j], this.state.files[i]];
+                }
+                
+                // Set to the first file of shuffled queue
+                this.state.currentFileIndex = 0;
+            },
+            
+            // Download current file - fixed version
+            async downloadCurrentFile() {
+                if (this.state.files.length === 0 || this.state.currentFileIndex >= this.state.files.length) return;
+                
+                try {
+                    const file = this.state.files[this.state.currentFileIndex];
+                    const fileContent = await file.arrayBuffer();
+                    const blob = new Blob([fileContent], { type: file.type });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create an invisible anchor element for download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = file.name;
+                    document.body.appendChild(a); // Ensure Firefox compatibility
+                    a.click();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                } catch (err) {
+                    console.error('Error downloading file:', err);
+                    alert('Failed to download the file. Please try again.');
+                }
+            },
+            
+            // Select new folder
+            async selectNewFolder() {
+                try {
+                    const newDirHandle = await window.showDirectoryPicker();
+                    
+                    // Save current folder to recent folders
+                    if (this.state.currentDirHandle) {
+                        this.addToRecentFolders(this.state.currentDirHandle);
+                    }
+                    
+                    // Set new directory
+                    this.state.currentDirHandle = newDirHandle;
+                    
+                    // Get files from new directory
+                    this.state.files = await this.getFilesFromDirectory(this.state.currentDirHandle);
+                    
+                    if (this.state.files.length > 0) {
+                        // Update the UI if needed
+                        const startScreen = document.querySelector('.start-screen');
+                        const header = document.querySelector('.header');
+                        const viewer = document.querySelector('.viewer');
+                        
+                        if (startScreen.classList.contains('hidden')) {
+                            // Already viewing files, just update
+                            this.state.currentFileIndex = 0;
+                            this.displayFile(this.state.files[0]);
+                            
+                            // Update queue if open
+                            if (this.state.isQueueOpen) {
+                                this.updateQueueList();
+                            }
+                        } else {
+                            // First time viewing, show the UI
+                            startScreen.classList.add('hidden');
+                            header.classList.remove('hidden');
+                            viewer.classList.remove('hidden');
+                            
+                            // Display the first file
+                            this.state.currentFileIndex = 0;
+                            this.displayFile(this.state.files[0]);
+                        }
+                    } else {
+                        alert('No files found in the selected directory.');
+                    }
+                    
+                    // Save to recent folders
+                    this.addToRecentFolders(this.state.currentDirHandle);
+                    
+                } catch (err) {
+                    console.error('Error selecting new directory:', err);
+                    if (err.name !== 'AbortError') {
+                        alert('Error selecting directory. Please try again.');
+                    }
+                }
+            },
+            
+            // Fallback for browsers without File System Access API
+            async selectFilesInstead() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                
+                input.onchange = (e) => {
+                    if (input.files.length > 0) {
+                        // Convert FileList to array
+                        this.state.files = Array.from(input.files);
+                        
+                        // Update the UI
+                        const startScreen = document.querySelector('.start-screen');
+                        const header = document.querySelector('.header');
+                        const viewer = document.querySelector('.viewer');
+                        
+                        startScreen.classList.add('hidden');
+                        header.classList.remove('hidden');
+                        viewer.classList.remove('hidden');
+                        
+                        // Display the first file
+                        this.state.currentFileIndex = 0;
+                        this.displayFile(this.state.files[0]);
+                    }
+                };
+                
+                input.click();
+            },
+            
+            // Initialize IndexedDB for storing directory handles
+            async initializeDB() {
+                return new Promise((resolve, reject) => {
+                    if (this.state.dbInitialized) {
+                        resolve();
+                        return;
+                    }
+                    
+                    const request = indexedDB.open('MediaViewerDB', 1);
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        // Create an object store for directory handles
+                        if (!db.objectStoreNames.contains('directoryHandles')) {
+                            db.createObjectStore('directoryHandles', { keyPath: 'id' });
+                        }
+                    };
+                    
+                    request.onsuccess = (event) => {
+                        this.state.db = event.target.result;
+                        this.state.dbInitialized = true;
+                        resolve();
+                    };
+                    
+                    request.onerror = (event) => {
+                        console.error('IndexedDB error:', event.target.error);
+                        reject(event.target.error);
+                    };
+                });
+            },
+            
+            // Store directory handle in IndexedDB
+            async storeDirHandle(id, dirHandle) {
+                try {
+                    await this.initializeDB();
+                    
+                    return new Promise((resolve, reject) => {
+                        const transaction = this.state.db.transaction(['directoryHandles'], 'readwrite');
+                        const objectStore = transaction.objectStore('directoryHandles');
+                        
+                        const request = objectStore.put({
+                            id: id,
+                            handle: dirHandle
+                        });
+                        
+                        request.onsuccess = () => resolve();
+                        request.onerror = (event) => reject(event.target.error);
+                    });
+                } catch (err) {
+                    console.error('Error storing directory handle:', err);
+                }
+            },
+            
+            // Get directory handle from IndexedDB
+            async getDirHandle(id) {
+                try {
+                    await this.initializeDB();
+                    
+                    return new Promise((resolve, reject) => {
+                        const transaction = this.state.db.transaction(['directoryHandles'], 'readonly');
+                        const objectStore = transaction.objectStore('directoryHandles');
+                        
+                        const request = objectStore.get(id);
+                        
+                        request.onsuccess = (event) => {
+                            if (event.target.result) {
+                                resolve(event.target.result.handle);
+                            } else {
+                                resolve(null);
+                            }
+                        };
+                        
+                        request.onerror = (event) => reject(event.target.error);
+                    });
+                } catch (err) {
+                    console.error('Error getting directory handle:', err);
+                    return null;
+                }
+            },
+            
+            // Recent and starred folders management
+            loadRecentFolders() {
+                // Load recent folders
+                const savedFolders = localStorage.getItem('recentFolders');
+                if (savedFolders) {
+                    try {
+                        this.state.recentFolders = JSON.parse(savedFolders);
+                    } catch (e) {
+                        console.error('Error parsing recent folders:', e);
+                        this.state.recentFolders = [];
+                    }
+                }
+                
+                // Load starred folders
+                const starredFolders = localStorage.getItem('starredFolders');
+                if (starredFolders) {
+                    try {
+                        this.state.starredFolders = JSON.parse(starredFolders);
+                    } catch (e) {
+                        console.error('Error parsing starred folders:', e);
+                        this.state.starredFolders = [];
+                    }
+                }
+                
+                // Initialize display limit for recent folders
+                this.state.displayLimit = 8;
+                
+                this.updateFolderLists();
+                
+                // Initialize tooltips
+                this.initTooltips();
+            },
+            
+            // Initialize tooltip functionality
+            initTooltips() {
+                // Create tooltip element
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.style.opacity = '0';
+                document.body.appendChild(tooltip);
+                
+                // Define tooltip texts for various elements
+                const tooltipTexts = {
+                    'download-btn': 'Download',
+                    'shuffle-btn': 'Shuffle',
+                    'new-folder-btn': 'New Folder',
+                    'add-btn': 'Add File',
+                    'queue-btn': 'Show Queue',
+                    'queue-close': 'Close Queue',
+                    'shuffle-queue-btn': 'Shuffle',
+                    'sort-queue-btn': 'Sort',
+                    'play-pause-btn': 'Play/Pause',
+                    'start-btn': 'Select Folder',
+                    'load-more-btn': 'Show More',
+                    'modal-close': 'Close',
+                    'file-select-btn': 'Browse Files',
+                    'add-file-btn': 'Add File',
+                };
+                
+                // Add custom tooltips for buttons with .folder-star and .folder-delete classes
+                document.addEventListener('mouseover', (e) => {
+                    let target = e.target;
+                    
+                    // Check for Font Awesome icons and use their parent button as target
+                    if (target.tagName === 'I' && target.parentElement.tagName === 'BUTTON') {
+                        target = target.parentElement;
+                    }
+                    
+                    let tooltipText = '';
+                    
+                    // Get tooltip text based on element class or ID
+                    if (target.classList.contains('folder-star')) {
+                        tooltipText = target.classList.contains('active') ? 'Unpin Folder' : 'Pin Folder';
+                    } else if (target.classList.contains('folder-delete')) {
+                        tooltipText = 'Remove Folder';
+                    } else if ((target.classList.contains('control-btn') || 
+                              target.classList.contains('queue-btn') || 
+                              (target.tagName === 'BUTTON' && !target.textContent.trim())) && 
+                              !target.classList.contains('start-btn')) {
+                        // Get tooltip text from the element's ID, class, or title
+                        // Skip buttons with text content as they're self-explanatory
+                        for (const className in tooltipTexts) {
+                            if (target.classList.contains(className) || target.id === className) {
+                                tooltipText = tooltipTexts[className];
+                                break;
+                            }
+                        }
+                        
+                        // Use the title attribute if no tooltip text is found
+                        if (!tooltipText && target.title) {
+                            tooltipText = target.title;
+                        }
+                    }
+                    
+                    // Show tooltip if we have text
+                    if (tooltipText) {
+                        tooltip.textContent = tooltipText;
+                        tooltip.style.opacity = '1';
+                        
+                        // Position tooltip below the element
+                        const rect = target.getBoundingClientRect();
+                        tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                        tooltip.style.top = (rect.bottom + 5) + 'px';
+                        
+                        // Adjust if tooltip goes off-screen
+                        const tooltipRect = tooltip.getBoundingClientRect();
+                        if (tooltipRect.right > window.innerWidth) {
+                            tooltip.style.left = (window.innerWidth - tooltipRect.width - 10) + 'px';
+                        }
+                        if (tooltipRect.left < 0) {
+                            tooltip.style.left = '10px';
+                        }
+                    }
+                });
+                
+                // Hide tooltip on mouseout
+                document.addEventListener('mouseout', () => {
+                    tooltip.style.opacity = '0';
+                });
+            },
+            
+            async addToRecentFolders(dirHandle) {
+                try {
+                    // Get folder path if possible (might not work in all browsers)
+                    let folderPath = dirHandle.name;
+                    
+                    try {
+                        // Try to get a more detailed path (this is a non-standard property)
+                        if (dirHandle.getFullPath) {
+                            folderPath = await dirHandle.getFullPath();
+                        }
+                    } catch (e) {
+                        // Fallback to name if getFullPath is not available
+                        console.log('Using folder name as path is not fully supported in this browser');
+                    }
+                    
+                    // Create folder info object
+                    const folderInfo = {
+                        name: dirHandle.name,
+                        path: folderPath,
+                        id: Date.now().toString(), // Use timestamp as unique ID
+                        timestamp: Date.now()
+                    };
+                    
+                    // Check if folder already exists (by name)
+                    const existingIndex = this.state.recentFolders.findIndex(f => f.name === folderInfo.name);
+                    if (existingIndex !== -1) {
+                        // Remove it so we can add it to the top
+                        this.state.recentFolders.splice(existingIndex, 1);
+                    }
+                    
+                    // Add to the beginning of the array
+                    this.state.recentFolders.unshift(folderInfo);
+                    
+                    // Keep only the most recent 5
+                    if (this.state.recentFolders.length > 5) {
+                        this.state.recentFolders = this.state.recentFolders.slice(0, 5);
+                    }
+                    
+                    // Store directory handle in IndexedDB
+                    await this.storeDirHandle(folderInfo.id, dirHandle);
+                    
+                    // Save to localStorage
+                    localStorage.setItem('recentFolders', JSON.stringify(this.state.recentFolders));
+                    
+                    // Update the UI
+                    this.updateFolderLists();
+                } catch (err) {
+                    console.error('Error adding folder to recent list:', err);
+                }
+            },
+            
+            removeFromRecentFolders(id) {
+                this.state.recentFolders = this.state.recentFolders.filter(f => f.id !== id);
+                localStorage.setItem('recentFolders', JSON.stringify(this.state.recentFolders));
+                this.updateFolderLists();
+            },
+            
+            starFolder(id) {
+                // Find the folder in recent folders
+                const folder = this.state.recentFolders.find(f => f.id === id);
+                
+                if (folder) {
+                    // Check if already starred
+                    const starredIndex = this.state.starredFolders.findIndex(f => f.id === id);
+                    
+                    if (starredIndex === -1) {
+                        // Add to starred
+                        this.state.starredFolders.push(folder);
+                        
+                        // Sort by most recent
+                        this.state.starredFolders.sort((a, b) => b.timestamp - a.timestamp);
+                        
+                        // Save to localStorage
+                        localStorage.setItem('starredFolders', JSON.stringify(this.state.starredFolders));
+                    }
+                }
+                
+                this.updateFolderLists();
+            },
+            
+            unstarFolder(id) {
+                // Remove from starred folders
+                this.state.starredFolders = this.state.starredFolders.filter(f => f.id !== id);
+                
+                // Save to localStorage
+                localStorage.setItem('starredFolders', JSON.stringify(this.state.starredFolders));
+                
+                this.updateFolderLists();
+            },
+            
+            updateFolderLists() {
+                this.updateStarredFoldersList();
+                this.updateRecentFoldersList();
+            },
+            
+            updateStarredFoldersList() {
+                const starredFoldersContainer = document.querySelector('.starred-folders');
+                const starredFoldersList = document.querySelector('.starred-list');
+                
+                // Show/hide container based on if we have starred folders
+                if (this.state.starredFolders.length > 0) {
+                    starredFoldersContainer.classList.remove('hidden');
+                    
+                    // Clear existing list
+                    starredFoldersList.innerHTML = '';
+                    
+                    // Add each folder to the list
+                    this.state.starredFolders.forEach(folder => {
+                        const item = document.createElement('div');
+                        item.className = 'folder-item';
+                        
+                        // Use the file location path as the subtitle, not the name again
+                        let folderLocation = folder.path !== folder.name ? folder.path : "";
+                        
+                        item.innerHTML = `
+                            <div class="folder-name">
+                                <i class="fas fa-folder"></i> ${folder.name}
+                                <div class="folder-path" style="font-size: 0.8rem; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${folderLocation}">${folderLocation}</div>
+                            </div>
+                            <div class="folder-actions">
+                                <button class="folder-star active" data-id="${folder.id}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                <button class="folder-delete" data-id="${folder.id}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Open folder directly
+                        item.addEventListener('click', async (e) => {
+                            // Don't trigger if clicking buttons
+                            if (e.target.closest('.folder-delete') || e.target.closest('.folder-star')) return;
+                            
+                            try {
+                                // Try to get the stored directory handle
+                                const dirHandle = await this.getDirHandle(folder.id);
+                                
+                                if (dirHandle) {
+                                    // Request permission to access the directory
+                                    const permissionStatus = await dirHandle.requestPermission({ mode: 'read' });
+                                    
+                                    if (permissionStatus === 'granted') {
+                                        // Set as current directory
+                                        this.state.currentDirHandle = dirHandle;
+                                        
+                                        // Get files from this directory
+                                        this.state.files = await this.getFilesFromDirectory(dirHandle);
+                                        
+                                        if (this.state.files.length > 0) {
+                                            // Update the UI
+                                            const startScreen = document.querySelector('.start-screen');
+                                            const header = document.querySelector('.header');
+                                            const viewer = document.querySelector('.viewer');
+                                            
+                                            startScreen.classList.add('hidden');
+                                            header.classList.remove('hidden');
+                                            viewer.classList.remove('hidden');
+                                            
+                                            // Display the first file
+                                            this.state.currentFileIndex = 0;
+                                            this.displayFile(this.state.files[0]);
+                                            
+                                            // Update queue if open
+                                            if (this.state.isQueueOpen) {
+                                                this.updateQueueList();
+                                            }
+                                        } else {
+                                            alert('No files found in the selected directory.');
+                                        }
+                                    } else {
+                                        alert('Permission to access folder was denied.');
+                                        this.selectNewFolder();
+                                    }
+                                } else {
+                                    alert('Could not access the folder. Please select it manually.');
+                                    this.selectNewFolder();
+                                }
+                            } catch (err) {
+                                console.error('Error opening folder:', err);
+                                alert('Error opening folder. Please select it manually.');
+                                this.selectNewFolder();
+                            }
+                        });
+                        
+                        // Unstar folder
+                        const starBtn = item.querySelector('.folder-star');
+                        starBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const id = starBtn.dataset.id;
+                            this.unstarFolder(id);
+                        });
+                        
+                        // Delete folder from list
+                        const deleteBtn = item.querySelector('.folder-delete');
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const id = deleteBtn.dataset.id;
+                            this.removeFromRecentFolders(id);
+                            this.unstarFolder(id);
+                        });
+                        
+                        starredFoldersList.appendChild(item);
+                    });
+                } else {
+                    starredFoldersContainer.classList.add('hidden');
+                }
+            },
+            
+            updateRecentFoldersList() {
+                const recentFoldersContainer = document.querySelector('.recent-folders');
+                const recentFoldersList = document.querySelector('.recent-list');
+                const loadMoreBtn = document.querySelector('.load-more-btn');
+                
+                // Show/hide container based on if we have recent folders
+                if (this.state.recentFolders.length > 0) {
+                    recentFoldersContainer.classList.remove('hidden');
+                    
+                    // Clear existing list
+                    recentFoldersList.innerHTML = '';
+                    
+                    // Get folders not in starred (for display)
+                    const foldersToDisplay = this.state.recentFolders.filter(
+                        folder => !this.state.starredFolders.some(f => f.id === folder.id)
+                    );
+                    
+                    // Determine if we need to show load more button
+                    if (foldersToDisplay.length > this.state.displayLimit) {
+                        loadMoreBtn.classList.remove('hidden');
+                        
+                        // Set up load more button
+                        loadMoreBtn.onclick = () => {
+                            this.state.displayLimit += 8;
+                            this.updateRecentFoldersList();
+                            
+                            // Hide button if we've shown all folders
+                            if (this.state.displayLimit >= foldersToDisplay.length) {
+                                loadMoreBtn.classList.add('hidden');
+                            }
+                        };
+                    } else {
+                        loadMoreBtn.classList.add('hidden');
+                    }
+                    
+                    // Add each folder to the list (up to display limit)
+                    foldersToDisplay.slice(0, this.state.displayLimit).forEach(folder => {
+                        const item = document.createElement('div');
+                        item.className = 'folder-item';
+                        
+                        // Check if this folder is starred
+                        const isStarred = this.state.starredFolders.some(f => f.id === folder.id);
+                        
+                        // Use the file location path as the subtitle, not the name again
+                        let folderLocation = folder.path !== folder.name ? folder.path : "";
+                        
+                        item.innerHTML = `
+                            <div class="folder-name">
+                                <i class="fas fa-folder"></i> ${folder.name}
+                                <div class="folder-path" style="font-size: 0.8rem; color: #aaa; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${folderLocation}">${folderLocation}</div>
+                            </div>
+                            <div class="folder-actions">
+                                <button class="folder-star ${isStarred ? 'active' : ''}" data-id="${folder.id}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                <button class="folder-delete" data-id="${folder.id}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Open folder directly
+                        item.addEventListener('click', async (e) => {
+                            // Don't trigger if clicking buttons
+                            if (e.target.closest('.folder-delete') || e.target.closest('.folder-star')) return;
+                            
+                            try {
+                                // Try to get the stored directory handle
+                                const dirHandle = await this.getDirHandle(folder.id);
+                                
+                                if (dirHandle) {
+                                    // Request permission to access the directory
+                                    const permissionStatus = await dirHandle.requestPermission({ mode: 'read' });
+                                    
+                                    if (permissionStatus === 'granted') {
+                                        // Set as current directory
+                                        this.state.currentDirHandle = dirHandle;
+                                        
+                                        // Get files from this directory
+                                        this.state.files = await this.getFilesFromDirectory(dirHandle);
+                                        
+                                        if (this.state.files.length > 0) {
+                                            // Update the UI
+                                            const startScreen = document.querySelector('.start-screen');
+                                            const header = document.querySelector('.header');
+                                            const viewer = document.querySelector('.viewer');
+                                            
+                                            startScreen.classList.add('hidden');
+                                            header.classList.remove('hidden');
+                                            viewer.classList.remove('hidden');
+                                            
+                                            // Display the first file
+                                            this.state.currentFileIndex = 0;
+                                            this.displayFile(this.state.files[0]);
+                                            
+                                            // Update queue if open
+                                            if (this.state.isQueueOpen) {
+                                                this.updateQueueList();
+                                            }
+                                        } else {
+                                            alert('No files found in the selected directory.');
+                                        }
+                                    } else {
+                                        alert('Permission to access folder was denied.');
+                                        this.selectNewFolder();
+                                    }
+                                } else {
+                                    alert('Could not access the folder. Please select it manually.');
+                                    this.selectNewFolder();
+                                }
+                            } catch (err) {
+                                console.error('Error opening folder:', err);
+                                alert('Error opening folder. Please select it manually.');
+                                this.selectNewFolder();
+                            }
+                        });
+                        
+                        // Star folder
+                        const starBtn = item.querySelector('.folder-star');
+                        starBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const id = starBtn.dataset.id;
+                            this.starFolder(id);
+                        });
+                        
+                        // Delete folder from list
+                        const deleteBtn = item.querySelector('.folder-delete');
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const id = deleteBtn.dataset.id;
+                            this.removeFromRecentFolders(id);
+                        });
+                        
+                        recentFoldersList.appendChild(item);
+                    });
+                } else {
+                    recentFoldersContainer.classList.add('hidden');
+                }
+            },
+            
+            // Handle file add to current folder
+            handleFileAdd(file) {
+                const dropArea = document.querySelector('.drop-area');
+                this.state.selectedFileToAdd = file;
+                dropArea.innerHTML = `
+                    <i class="fas fa-file fa-3x"></i>
+                    <p>${file.name}</p>
+                    <p>${this.formatFileSize(file.size)}</p>
+                `;
+            },
+            
+            // Add the selected file to the current folder and list
+            async addSelectedFile() {
+                const modal = document.querySelector('.modal');
+                const dropArea = document.querySelector('.drop-area');
+                
+                if (!this.state.selectedFileToAdd) {
+                    alert('Please select a file to add.');
+                    return;
+                }
+                
+                if (this.state.currentDirHandle) {
+                    try {
+                        // Create a new file in the directory
+                        const newFileHandle = await this.state.currentDirHandle.getFileHandle(
+                            this.state.selectedFileToAdd.name, 
+                            { create: true }
+                        );
+                        
+                        // Write to the file
+                        const writable = await newFileHandle.createWritable();
+                        await writable.write(this.state.selectedFileToAdd);
+                        await writable.close();
+                        
+                        // Add to our files array
+                        const fileObj = await newFileHandle.getFile();
+                        this.state.files.push(fileObj);
+                        
+                        alert(`File "${this.state.selectedFileToAdd.name}" added successfully.`);
+                        modal.classList.remove('show');
+                        
+                        // Update queue if it's open
+                        if (this.state.isQueueOpen) {
+                            this.updateQueueList();
+                        }
+                        
+                        // Reset the drop area
+                        dropArea.innerHTML = `
+                            <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                            <p>Drag & Drop files here</p>
+                            <p>OR</p>
+                            <button class="file-select-btn">Browse Files</button>
+                        `;
+                        
+                        // Reset state
+                        this.state.selectedFileToAdd = null;
+                        
+                        // Update file browser button click handler
+                        document.querySelector('.file-select-btn').addEventListener('click', () => {
+                            document.querySelector('#file-input').click();
+                        });
+                    } catch (err) {
+                        console.error('Error adding file to folder:', err);
+                        alert('Failed to add file. Please try again.');
+                    }
+                } else {
+                    // No directory selected, just add to in-memory list
+                    this.state.files.push(this.state.selectedFileToAdd);
+                    
+                    alert(`File "${this.state.selectedFileToAdd.name}" added to current view.`);
+                    modal.classList.remove('show');
+                    
+                    // Update queue if it's open
+                    if (this.state.isQueueOpen) {
+                        this.updateQueueList();
+                    }
+                    
+                    // Reset the drop area
+                    dropArea.innerHTML = `
+                        <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                        <p>Drag & Drop files here</p>
+                        <p>OR</p>
+                        <button class="file-select-btn">Browse Files</button>
+                    `;
+                    
+                    // Reset state
+                    this.state.selectedFileToAdd = null;
+                    
+                    // Update file browser button click handler
+                    document.querySelector('.file-select-btn').addEventListener('click', () => {
+                        document.querySelector('#file-input').click();
+                    });
+                }
+            },
+            
+            // Get all files in a directory with better error handling
+            async getFilesFromDirectory(dirHandle) {
+                const filesList = [];
+                
+                try {
+                    for await (const entry of dirHandle.values()) {
+                        if (entry.kind === 'file') {
+                            try {
+                                const file = await entry.getFile();
+                                filesList.push(file);
+                            } catch (err) {
+                                console.error(`Error accessing file ${entry.name}:`, err);
+                                // Continue with other files
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error reading directory:', err);
+                    alert('Error reading directory contents. Some files may not be displayed.');
+                }
+                
+                return filesList;
+            },
+            
+            // Toggle queue sidebar
+            toggleQueueSidebar() {
+                if (this.state.isQueueOpen) {
+                    this.closeQueueSidebar();
+                } else {
+                    this.openQueueSidebar();
+                }
+            },
+            
+            // Open queue sidebar
+            openQueueSidebar() {
+                const queueSidebar = document.querySelector('.queue-sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                queueSidebar.classList.add('open');
+                mainContent.classList.add('with-queue');
+                this.state.isQueueOpen = true;
+                this.updateQueueList();
+            },
+            
+            // Close queue sidebar
+            closeQueueSidebar() {
+                const queueSidebar = document.querySelector('.queue-sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                queueSidebar.classList.remove('open');
+                mainContent.classList.remove('with-queue');
+                this.state.isQueueOpen = false;
+            },
+            
+            // Update queue list with improved drag functionality
+            updateQueueList() {
+                const queueList = document.querySelector('.queue-list');
+                
+                // Clear existing content
+                queueList.innerHTML = '';
+                
+                // Create drop indicator element if it doesn't exist
+                if (!this.state.dragIndicator) {
+                    this.state.dragIndicator = document.createElement('div');
+                    this.state.dragIndicator.className = 'queue-drop-indicator';
+                    queueList.appendChild(this.state.dragIndicator);
+                }
+                
+                // Add items to queue
+                this.state.files.forEach((file, index) => {
+                    const item = document.createElement('div');
+                    item.className = `queue-item${index === this.state.currentFileIndex ? ' active' : ''}`;
+                    item.dataset.index = index;
+                    
+                    const fileSize = this.formatFileSize(file.size);
+                    const fileExt = this.getFileExtension(file.name);
+                    
+                    // Create the basic item structure
+                    item.innerHTML = `
+                        <div class="queue-item-icon">
+                            <i class="fas ${this.getFileIcon(file.type)}"></i>
+                        </div>
+                        <div class="queue-item-details">
+                            <div class="queue-item-title">${file.name}</div>
+                            <div class="queue-item-meta">
+                                <span>${fileExt}</span>
+                                <span>${fileSize}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Generate thumbnail for image or video files
+                    const iconContainer = item.querySelector('.queue-item-icon');
+                    this.generateThumbnail(file, iconContainer);
+                    
+                    item.addEventListener('click', () => {
+                        this.state.currentFileIndex = index;
+                        this.displayFile(this.state.files[this.state.currentFileIndex]);
+                    });
+                    
+                    // Make items draggable for reordering
+                    item.draggable = true;
+                    
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', index);
+                        item.classList.add('dragging');
+                    });
+                    
+                    item.addEventListener('dragend', () => {
+                        item.classList.remove('dragging');
+                        this.state.dragIndicator.classList.remove('show');
+                    });
+                    
+                    item.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        const rect = item.getBoundingClientRect();
+                        const middleY = rect.top + rect.height / 2;
+                        
+                        if (e.clientY < middleY) {
+                            // Position indicator at the top of the item
+                            this.state.dragIndicator.style.top = `${rect.top}px`;
+                            this.state.dragIndicator.dataset.position = 'before';
+                            this.state.dragIndicator.dataset.index = index;
+                        } else {
+                            // Position indicator at the bottom of the item
+                            this.state.dragIndicator.style.top = `${rect.bottom}px`;
+                            this.state.dragIndicator.dataset.position = 'after';
+                            this.state.dragIndicator.dataset.index = index;
+                        }
+                        
+                        this.state.dragIndicator.classList.add('show');
+                    });
+                    
+                    item.addEventListener('dragleave', () => {
+                        item.classList.remove('dragover');
+                    });
+                    
+                    item.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        this.state.dragIndicator.classList.remove('show');
+                        
+                        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                        let toIndex = index;
+                        
+                        // Adjust based on whether dropping before or after
+                        if (this.state.dragIndicator.dataset.position === 'after') {
+                            toIndex++;
+                        }
+                        
+                        // Don't do anything if dropping at the same position
+                        if (fromIndex === toIndex || fromIndex + 1 === toIndex) {
+                            return;
+                        }
+                        
+                        // Reorder the files array
+                        const [movedFile] = this.state.files.splice(fromIndex, 1);
+                        
+                        // Insert at the new position
+                        if (fromIndex < toIndex) {
+                            toIndex--; // Adjust for the removed element
+                        }
+                        this.state.files.splice(toIndex, 0, movedFile);
+                        
+                        // Update current index if needed
+                        if (this.state.currentFileIndex === fromIndex) {
+                            this.state.currentFileIndex = toIndex;
+                        } else if (fromIndex < this.state.currentFileIndex && toIndex >= this.state.currentFileIndex) {
+                            this.state.currentFileIndex--;
+                        } else if (fromIndex > this.state.currentFileIndex && toIndex <= this.state.currentFileIndex) {
+                            this.state.currentFileIndex++;
+                        }
+                        
+                        // Update the queue list
+                        this.updateQueueList();
+                    });
+                    
+                    queueList.appendChild(item);
+                });
+            },
+            
+            // Update queue highlight
+            updateQueueHighlight() {
+                const queueList = document.querySelector('.queue-list');
+                const items = queueList.querySelectorAll('.queue-item');
+                
+                items.forEach((item, index) => {
+                    if (index === this.state.currentFileIndex) {
+                        item.classList.add('active');
+                        
+                        // Scroll into view if needed
+                        if (this.state.isQueueOpen) {
+                            setTimeout(() => {
+                                item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }, 100);
+                        }
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            },
+            
+            // Helper function to get file icon
+            getFileIcon(mimeType) {
+                if (mimeType.startsWith('image/')) {
+                    return 'fa-image';
+                } else if (mimeType.startsWith('video/')) {
+                    return 'fa-video';
+                } else if (mimeType.startsWith('audio/')) {
+                    return 'fa-music';
+                } else if (mimeType.startsWith('application/pdf')) {
+                    return 'fa-file-pdf';
+                } else if (mimeType.startsWith('application/vnd.openxmlformats-officedocument.wordprocessingml') || 
+                           mimeType.startsWith('application/msword')) {
+                    return 'fa-file-word';
+                } else if (mimeType.startsWith('application/vnd.openxmlformats-officedocument.spreadsheetml') || 
+                           mimeType.startsWith('application/vnd.ms-excel')) {
+                    return 'fa-file-excel';
+                } else if (mimeType.startsWith('application/vnd.openxmlformats-officedocument.presentationml') || 
+                           mimeType.startsWith('application/vnd.ms-powerpoint')) {
+                    return 'fa-file-powerpoint';
+                } else if (mimeType.startsWith('text/')) {
+                    return 'fa-file-alt';
+                } else {
+                    return 'fa-file';
+                }
+            },
+            
+            // Format file size
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 B';
+                
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                
+                return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+            
+            // Helper function for formatting time
+            formatTime(seconds) {
+                if (isNaN(seconds) || !isFinite(seconds)) {
+                    return '0:00';
+                }
+                
+                const minutes = Math.floor(seconds / 60);
+                seconds = Math.floor(seconds % 60);
+                return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            },
+            
+            // Get file extension
+            getFileExtension(filename) {
+                return filename.slice((filename.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+            },
+            
+            // Generate thumbnail for queue items
+            async generateThumbnail(file, container) {
+                try {
+                    if (file.type.startsWith('image/')) {
+                        // For images, create a thumbnail directly
+                        const fileContent = await file.arrayBuffer();
+                        const blob = new Blob([fileContent], { type: file.type });
+                        const url = this.createObjectURL(blob);
+                        
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.onload = () => {
+                            // Remove icon
+                            container.innerHTML = '';
+                            container.appendChild(img);
+                        };
+                    } 
+                    else if (file.type.startsWith('video/')) {
+                        // For videos, create a thumbnail from a frame
+                        const fileContent = await file.arrayBuffer();
+                        const blob = new Blob([fileContent], { type: file.type });
+                        const url = this.createObjectURL(blob);
+                        
+                        const video = document.createElement('video');
+                        video.src = url;
+                        video.currentTime = 1; // Seek to 1 second
+                        
+                        video.addEventListener('loadeddata', () => {
+                            // Create canvas to capture video frame
+                            const canvas = document.createElement('canvas');
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // Convert to image
+                            try {
+                                const thumbnailUrl = canvas.toDataURL();
+                                const img = document.createElement('img');
+                                img.src = thumbnailUrl;
+                                
+                                // Remove icon
+                                container.innerHTML = '';
+                                container.appendChild(img);
+                                
+                                // Cleanup
+                                URL.revokeObjectURL(url);
+                            } catch (e) {
+                                console.error('Error creating video thumbnail:', e);
+                            }
+                        });
+                        
+                        video.addEventListener('error', (e) => {
+                            console.error('Error loading video for thumbnail:', e);
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error generating thumbnail:', e);
+                }
+            }
+        };
+        
+        // Add keyboard shortcuts help
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the app
+            App.init();
+        });
+    </script>
+</body>
+</html>
